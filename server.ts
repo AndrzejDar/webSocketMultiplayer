@@ -1,6 +1,8 @@
 import { WebSocket, WebSocketServer } from "ws";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, TICK_LENGTH } from "./src/constants.mjs";
 import { gameLoop, sendState } from "./src/serverFunctions.mjs";
+import { OtherPlayer, Player } from "./src/functions.mjs";
+import { Direction } from "./src/common.mjs";
 
 const SERVER_PORT = 6970;
 
@@ -9,7 +11,16 @@ export interface IPlayer {
   ws: WebSocket;
   x: number;
   y: number;
+  acceleration: { x: number; y: number };
+  velocity: { x: number; y: number };
 }
+
+interface IActionMsg {
+  kind: "PLAYER_ACTION";
+  start: boolean;
+  direction: Direction;
+}
+
 export interface IPlayerMsgData extends Omit<IPlayer, "ws"> {}
 
 export interface IMsg {
@@ -22,24 +33,22 @@ export interface IStateMsg {
 }
 
 const wss = new WebSocketServer({ port: SERVER_PORT });
-const players = new Map<number, IPlayer>();
+const players = new Map<number, Player>();
 let playerId = 0;
 wss.on("connection", (ws) => {
   console.log("player id:", playerId, "connected");
-  const player: IPlayer = {
-    id: playerId,
-    ws: ws,
-    x: Math.floor(Math.random() * CANVAS_WIDTH),
-    y: Math.floor(Math.random() * CANVAS_HEIGHT),
-  };
-  players.set(player.id, player);
+  const player = new Player(
+    playerId,
+    Math.floor(Math.random() * CANVAS_WIDTH),
+    Math.floor(Math.random() * CANVAS_HEIGHT),
+    ws
+  );
+  players.set(playerId, player);
   playerId++;
-
-  const { ws: _, ...playerSelf } = player;
   ws.send(
     JSON.stringify({
       kind: "IDENT",
-      data: playerSelf as IPlayerMsgData,
+      data: player.msgData(),
     } as IMsg)
   );
 
@@ -47,11 +56,33 @@ wss.on("connection", (ws) => {
     console.log(`player ${player.id} disconected`);
     players.delete(player.id);
   });
+
+  ws.on("message", (data) => {
+    const msg: IActionMsg = JSON.parse(data.toString());
+    switch (msg.kind) {
+      case "PLAYER_ACTION": {
+        // console.log(msg.direction);
+        player.setAcceleration(msg.direction, msg.start ? 1 : 0);
+        break;
+      }
+    }
+  });
 });
 
 console.log(`SERVER listening to ws://localhost:${SERVER_PORT}`);
 
-const interval = setInterval(() => {
+const loop = () => {
+  const startTime = performance.now();
   gameLoop(players);
   sendState(players);
-}, TICK_LENGTH);
+  const elapsed = performance.now() - startTime;
+  const delay = Math.max(0, TICK_LENGTH - elapsed);
+  setTimeout(loop, delay);
+};
+
+loop();
+
+// const interval = setInterval(() => {
+//   gameLoop(players);
+//   sendState(players);
+// }, TICK_LENGTH);

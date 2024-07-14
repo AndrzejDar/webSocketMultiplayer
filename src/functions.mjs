@@ -1,3 +1,4 @@
+import { ACCELERATION, DRAG, MAX_VELOCITY } from "./common.mjs";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, PLAYER_COLOR, PLAYER_RADIUS, } from "./constants.mjs";
 export const getCanvas = () => {
     const canvas = document.getElementById("game");
@@ -50,6 +51,86 @@ export class FPSCounter {
         this.drawTimes.push(drawTime);
         const avgDrawTime = this.drawTimes.reduce((a, b) => a + b) / this.drawTimes.length;
         drawText(`${this.timestamps.length} FPS, ${avgDrawTime.toFixed(2)}ms`, this.x, this.y);
+    }
+}
+export class OtherPlayer {
+    id;
+    x;
+    y;
+    velocity;
+    acceleration;
+    constructor(id, x, y) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.velocity = { x: 0, y: 0 };
+        this.acceleration = { x: 0, y: 0 };
+    }
+    update(deltaTime) {
+        if (this.acceleration.x !== 0) {
+            this.velocity.x += this.acceleration.x;
+        }
+        else {
+            this.velocity.x *= 1 - DRAG;
+        }
+        if (this.acceleration.y !== 0) {
+            this.velocity.y += this.acceleration.y;
+        }
+        else {
+            this.velocity.y *= 1 - DRAG;
+        }
+        this.velocity.x = Math.max(-MAX_VELOCITY, Math.min(this.velocity.x, MAX_VELOCITY));
+        this.velocity.y = Math.max(-MAX_VELOCITY, Math.min(this.velocity.y, MAX_VELOCITY));
+        this.x = Math.max(0, Math.min(this.x + this.velocity.x * deltaTime, CANVAS_WIDTH));
+        this.y = Math.max(0, Math.min(this.y + this.velocity.y * deltaTime, CANVAS_HEIGHT));
+    }
+    updateFromServer(data) {
+        this.x = data.x;
+        this.y = data.y;
+        this.acceleration = data.acceleration;
+        this.velocity = data.velocity;
+    }
+    setAcceleration(direction, enable) {
+        switch (direction) {
+            case "left":
+                this.acceleration.x = -1 * ACCELERATION * enable;
+                break;
+            case "right":
+                this.acceleration.x = ACCELERATION * enable;
+                break;
+            case "up":
+                this.acceleration.y = -1 * ACCELERATION * enable;
+                break;
+            case "down":
+                this.acceleration.y = ACCELERATION * enable;
+                break;
+        }
+        // this.acceleration.x = dx;
+        // this.acceleration.y = dy;
+    }
+    draw = (ctx) => {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, PLAYER_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = PLAYER_COLOR;
+        ctx.fill();
+        ctx.closePath();
+    };
+}
+export class Player extends OtherPlayer {
+    ws;
+    constructor(id, x, y, ws) {
+        super(id, x, y);
+        this.ws = ws;
+    }
+    msgData() {
+        const data = {
+            id: this.id,
+            x: this.x,
+            y: this.y,
+            acceleration: this.acceleration,
+            velocity: this.velocity,
+        };
+        return data;
     }
 }
 //# sourceMappingURL=functions.mjs.map

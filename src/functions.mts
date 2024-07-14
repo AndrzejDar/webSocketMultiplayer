@@ -1,3 +1,5 @@
+import { IPlayerMsgData } from "../server";
+import { ACCELERATION, Direction, DRAG, MAX_VELOCITY } from "./common.mjs";
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
@@ -71,5 +73,108 @@ export class FPSCounter {
       this.x,
       this.y
     );
+  }
+}
+
+export class OtherPlayer {
+  id: number;
+  x: number;
+  y: number;
+  velocity: { x: number; y: number };
+  acceleration: { x: number; y: number };
+
+  constructor(id: number, x: number, y: number) {
+    this.id = id;
+    this.x = x;
+    this.y = y;
+    this.velocity = { x: 0, y: 0 };
+    this.acceleration = { x: 0, y: 0 };
+  }
+
+  update(deltaTime: number) {
+    if (this.acceleration.x !== 0) {
+      this.velocity.x += this.acceleration.x;
+    } else {
+      this.velocity.x *= 1 - DRAG;
+    }
+    if (this.acceleration.y !== 0) {
+      this.velocity.y += this.acceleration.y;
+    } else {
+      this.velocity.y *= 1 - DRAG;
+    }
+    this.velocity.x = Math.max(
+      -MAX_VELOCITY,
+      Math.min(this.velocity.x, MAX_VELOCITY)
+    );
+    this.velocity.y = Math.max(
+      -MAX_VELOCITY,
+      Math.min(this.velocity.y, MAX_VELOCITY)
+    );
+
+    this.x = Math.max(
+      0,
+      Math.min(this.x + this.velocity.x * deltaTime, CANVAS_WIDTH)
+    );
+    this.y = Math.max(
+      0,
+      Math.min(this.y + this.velocity.y * deltaTime, CANVAS_HEIGHT)
+    );
+  }
+
+  updateFromServer(data: IPlayerMsgData) {
+    this.x = data.x;
+    this.y = data.y;
+    this.acceleration = data.acceleration;
+    this.velocity = data.velocity;
+  }
+
+  setAcceleration(direction: Direction, enable: 0 | 1) {
+    switch (direction) {
+      case "left":
+        this.acceleration.x = -1 * ACCELERATION * enable;
+        break;
+      case "right":
+        this.acceleration.x = ACCELERATION * enable;
+        break;
+      case "up":
+        this.acceleration.y = -1 * ACCELERATION * enable;
+        break;
+      case "down":
+        this.acceleration.y = ACCELERATION * enable;
+        break;
+    }
+    // this.acceleration.x = dx;
+    // this.acceleration.y = dy;
+  }
+  draw = (ctx: CanvasRenderingContext2D) => {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, PLAYER_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = PLAYER_COLOR;
+    ctx.fill();
+    ctx.closePath();
+  };
+}
+
+export class Player extends OtherPlayer {
+  ws;
+  constructor(
+    id: number,
+    x: number,
+    y: number,
+    ws: WebSocket | import("ws").WebSocket
+  ) {
+    super(id, x, y);
+    this.ws = ws;
+  }
+
+  msgData() {
+    const data: IPlayerMsgData = {
+      id: this.id,
+      x: this.x,
+      y: this.y,
+      acceleration: this.acceleration,
+      velocity: this.velocity,
+    };
+    return data;
   }
 }
