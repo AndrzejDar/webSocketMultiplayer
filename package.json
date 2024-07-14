@@ -1,0 +1,22 @@
+{
+  "name": "15_mmo_proto",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "watch": "node watch.js",
+    "server": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "typescript": "^5.5.3",
+    "@types/ws": "^8.5.11"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
