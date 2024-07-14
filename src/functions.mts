@@ -93,14 +93,14 @@ export class OtherPlayer {
 
   update(deltaTime: number) {
     if (this.acceleration.x !== 0) {
-      this.velocity.x += this.acceleration.x;
+      this.velocity.x += this.acceleration.x * deltaTime;
     } else {
-      this.velocity.x *= 1 - DRAG;
+      this.velocity.x *= 1 - DRAG * deltaTime;
     }
     if (this.acceleration.y !== 0) {
-      this.velocity.y += this.acceleration.y;
+      this.velocity.y += this.acceleration.y * deltaTime;
     } else {
-      this.velocity.y *= 1 - DRAG;
+      this.velocity.y *= 1 - DRAG * deltaTime;
     }
     this.velocity.x = Math.max(
       -MAX_VELOCITY,
@@ -128,7 +128,7 @@ export class OtherPlayer {
     this.velocity = data.velocity;
   }
 
-  setAcceleration(direction: Direction, enable: 0 | 1) {
+  setAction(direction: Direction, enable: 0 | 1) {
     switch (direction) {
       case "left":
         this.acceleration.x = -1 * ACCELERATION * enable;
@@ -146,6 +146,7 @@ export class OtherPlayer {
     // this.acceleration.x = dx;
     // this.acceleration.y = dy;
   }
+
   draw = (ctx: CanvasRenderingContext2D) => {
     ctx.beginPath();
     ctx.arc(this.x, this.y, PLAYER_RADIUS, 0, Math.PI * 2);
@@ -157,6 +158,8 @@ export class OtherPlayer {
 
 export class Player extends OtherPlayer {
   ws;
+  actionDelays: number[];
+  actionsTimestamps: number[];
   constructor(
     id: number,
     x: number,
@@ -165,6 +168,8 @@ export class Player extends OtherPlayer {
   ) {
     super(id, x, y);
     this.ws = ws;
+    this.actionDelays = [60];
+    this.actionsTimestamps = [];
   }
 
   msgData() {
@@ -174,7 +179,27 @@ export class Player extends OtherPlayer {
       y: this.y,
       acceleration: this.acceleration,
       velocity: this.velocity,
+      timestamp: this.actionsTimestamps[0],
     };
+    this.actionsTimestamps = [];
     return data;
+  }
+
+  setActionWithDealy(direction: Direction, enable: 0 | 1) {
+    setTimeout(() => {
+      this.setAction(direction, enable);
+    }, this.actionDelays.reduce((a, b) => a + b) / this.actionDelays.length);
+  }
+
+  addActionTimestamp(timestamp: number) {
+    this.actionsTimestamps.push(timestamp);
+  }
+
+  pushCalculatedDelay(delay: number) {
+    this.actionDelays.push(delay);
+    console.log("calculated delay", delay);
+    if (this.actionDelays.length > 5) {
+      this.actionDelays.shift();
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { IPlayerMsgData } from "./server";
+import { IActionMsg, IPlayerMsgData } from "./server";
 import { Direction } from "./src/common.mjs";
 import { FPS_LIMIT } from "./src/constants.mjs";
 import {
@@ -71,12 +71,20 @@ let players = new Map<number, OtherPlayer>();
               playerUpdate.id,
               new OtherPlayer(playerUpdate.id, playerUpdate.x, playerUpdate.y)
             );
-
-          console.log(payload, playerUpdate, players, otherPlayer);
-          // console.log(player, otherPlayer);
-          if (otherPlayer) otherPlayer.updateFromServer(playerUpdate);
-          if (player && player.id == playerUpdate.id)
+          else {
+            otherPlayer.updateFromServer(playerUpdate);
+          }
+          if (player && player.id == playerUpdate.id) {
             player?.updateFromServer(playerUpdate);
+
+            const sendingTimestamp = player.actionsTimestamps.filter(
+              (timestamp) => timestamp === playerUpdate.timestamp
+            );
+            if (sendingTimestamp[0]) {
+              const currTimestamp = performance.now();
+              player.pushCalculatedDelay(currTimestamp - sendingTimestamp[0]);
+            }
+          }
         });
         // console.log(players.length);
         break;
@@ -101,10 +109,10 @@ let players = new Map<number, OtherPlayer>();
 
       if (player) {
         player.update(deltaTime);
-        // player.draw(context);
+        player.draw(context);
       }
       players.forEach((otherPlayer) => {
-        // otherPlayer.update(deltaTime);
+        otherPlayer.update(deltaTime);
         otherPlayer.draw(context);
       });
 
@@ -121,13 +129,15 @@ window.addEventListener("keydown", (e) => {
     if (!e.repeat) {
       const direction = DIRECTION_KEYS[e.code];
       if (direction !== undefined) {
-        player.setAcceleration(direction, 1);
+        player.setActionWithDealy(direction, 1);
+        player.addActionTimestamp(performance.now());
         player.ws.send(
           JSON.stringify({
             kind: "PLAYER_ACTION",
             start: true,
             direction,
-          })
+            timestamp: performance.now(),
+          } as IActionMsg)
         );
       }
     }
@@ -138,7 +148,7 @@ window.addEventListener("keyup", (e) => {
     if (!e.repeat) {
       const direction = DIRECTION_KEYS[e.code];
       if (direction !== undefined) {
-        player.setAcceleration(direction, 0);
+        player.setAction(direction, 0);
         player.ws.send(
           JSON.stringify({
             kind: "PLAYER_ACTION",

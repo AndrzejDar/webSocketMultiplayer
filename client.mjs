@@ -44,12 +44,17 @@ let players = new Map();
                     const otherPlayer = players.get(playerUpdate.id);
                     if (!otherPlayer)
                         players.set(playerUpdate.id, new OtherPlayer(playerUpdate.id, playerUpdate.x, playerUpdate.y));
-                    console.log(payload, playerUpdate, players, otherPlayer);
-                    // console.log(player, otherPlayer);
-                    if (otherPlayer)
+                    else {
                         otherPlayer.updateFromServer(playerUpdate);
-                    if (player && player.id == playerUpdate.id)
+                    }
+                    if (player && player.id == playerUpdate.id) {
                         player?.updateFromServer(playerUpdate);
+                        const sendingTimestamp = player.actionsTimestamps.filter((timestamp) => timestamp === playerUpdate.timestamp);
+                        if (sendingTimestamp[0]) {
+                            const currTimestamp = performance.now();
+                            player.pushCalculatedDelay(currTimestamp - sendingTimestamp[0]);
+                        }
+                    }
                 });
                 // console.log(players.length);
                 break;
@@ -70,10 +75,10 @@ let players = new Map();
             context.clearRect(0, 0, canvas.width, canvas.height);
             if (player) {
                 player.update(deltaTime);
-                // player.draw(context);
+                player.draw(context);
             }
             players.forEach((otherPlayer) => {
-                // otherPlayer.update(deltaTime);
+                otherPlayer.update(deltaTime);
                 otherPlayer.draw(context);
             });
             counter.draw(timestamp);
@@ -87,11 +92,13 @@ window.addEventListener("keydown", (e) => {
         if (!e.repeat) {
             const direction = DIRECTION_KEYS[e.code];
             if (direction !== undefined) {
-                player.setAcceleration(direction, 1);
+                player.setActionWithDealy(direction, 1);
+                player.addActionTimestamp(performance.now());
                 player.ws.send(JSON.stringify({
                     kind: "PLAYER_ACTION",
                     start: true,
                     direction,
+                    timestamp: performance.now(),
                 }));
             }
         }
@@ -102,7 +109,7 @@ window.addEventListener("keyup", (e) => {
         if (!e.repeat) {
             const direction = DIRECTION_KEYS[e.code];
             if (direction !== undefined) {
-                player.setAcceleration(direction, 0);
+                player.setAction(direction, 0);
                 player.ws.send(JSON.stringify({
                     kind: "PLAYER_ACTION",
                     start: false,

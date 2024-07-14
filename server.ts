@@ -15,13 +15,16 @@ export interface IPlayer {
   velocity: { x: number; y: number };
 }
 
-interface IActionMsg {
+export interface IActionMsg {
   kind: "PLAYER_ACTION";
   start: boolean;
   direction: Direction;
+  timestamp: number;
 }
 
-export interface IPlayerMsgData extends Omit<IPlayer, "ws"> {}
+export interface IPlayerMsgData extends Omit<IPlayer, "ws"> {
+  timestamp: number | null;
+}
 
 export interface IMsg {
   kind: "IDENT" | "STATE";
@@ -62,7 +65,8 @@ wss.on("connection", (ws) => {
     switch (msg.kind) {
       case "PLAYER_ACTION": {
         // console.log(msg.direction);
-        player.setAcceleration(msg.direction, msg.start ? 1 : 0);
+        player.setAction(msg.direction, msg.start ? 1 : 0);
+        player.addActionTimestamp(msg.timestamp);
         break;
       }
     }

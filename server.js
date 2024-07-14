@@ -24,7 +24,8 @@ wss.on("connection", (ws) => {
         switch (msg.kind) {
             case "PLAYER_ACTION": {
                 // console.log(msg.direction);
-                player.setAcceleration(msg.direction, msg.start ? 1 : 0);
+                player.setAction(msg.direction, msg.start ? 1 : 0);
+                player.addActionTimestamp(msg.timestamp);
                 break;
             }
         }
