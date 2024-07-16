@@ -56,7 +56,11 @@ let players = new Map();
                         }
                     }
                 });
-                // console.log(players.length);
+                break;
+            }
+            case "DISCONNECT": {
+                console.log("disconect", payload);
+                players.delete(payload);
                 break;
             }
             default: {

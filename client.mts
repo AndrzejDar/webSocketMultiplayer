@@ -20,7 +20,7 @@ interface IPlayer {
   direction: { x: number; y: number };
 }
 interface IMsg {
-  kind: "IDENT" | "STATE";
+  kind: "IDENT" | "STATE" | "DISCONNECT";
   data: any;
 }
 
@@ -86,7 +86,11 @@ let players = new Map<number, OtherPlayer>();
             }
           }
         });
-        // console.log(players.length);
+        break;
+      }
+      case "DISCONNECT": {
+        console.log("disconect", payload);
+        players.delete(payload);
         break;
       }
       default: {

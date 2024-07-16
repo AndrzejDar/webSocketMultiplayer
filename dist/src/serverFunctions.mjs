@@ -13,4 +13,13 @@ export const sendState = (players) => {
         player.ws.send(JSON.stringify({ kind: "STATE", data: state }));
     });
 };
+export const sendDisconect = (players, disconectedPlayerId) => {
+    const state = [];
+    players.forEach((player) => {
+        player.ws.send(JSON.stringify({
+            kind: "DISCONNECT",
+            data: disconectedPlayerId,
+        }));
+    });
+};
 //# sourceMappingURL=serverFunctions.mjs.map

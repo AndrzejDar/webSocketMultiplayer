@@ -1,6 +1,6 @@
 import { WebSocketServer } from "ws";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, TICK_LENGTH } from "./src/constants.mjs";
-import { gameLoop, sendState } from "./src/serverFunctions.mjs";
+import { gameLoop, sendDisconect, sendState } from "./src/serverFunctions.mjs";
 import { Player } from "./src/functions.mjs";
 const SERVER_PORT = 6970;
 const wss = new WebSocketServer({ port: SERVER_PORT });
@@ -17,7 +17,9 @@ wss.on("connection", (ws) => {
     }));
     ws.on("close", () => {
         console.log(`player ${player.id} disconected`);
-        players.delete(player.id);
+        const disconectId = player.id;
+        players.delete(disconectId);
+        sendDisconect(players, disconectId);
     });
     ws.on("message", (data) => {
         const msg = JSON.parse(data.toString());
@@ -41,8 +43,4 @@ const loop = () => {
     setTimeout(loop, delay);
 };
 loop();
-// const interval = setInterval(() => {
-//   gameLoop(players);
-//   sendState(players);
-// }, TICK_LENGTH);
 //# sourceMappingURL=server.js.map

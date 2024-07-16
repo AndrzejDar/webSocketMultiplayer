@@ -1,6 +1,6 @@
 import { WebSocket, WebSocketServer } from "ws";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, TICK_LENGTH } from "./src/constants.mjs";
-import { gameLoop, sendState } from "./src/serverFunctions.mjs";
+import { gameLoop, sendDisconect, sendState } from "./src/serverFunctions.mjs";
 import { OtherPlayer, Player } from "./src/functions.mjs";
 import { Direction } from "./src/common.mjs";
 
@@ -34,6 +34,10 @@ export interface IStateMsg {
   kind: "STATE";
   data: IPlayerMsgData[];
 }
+export interface IDiscMsg {
+  kind: "DISCONNECT";
+  data: number;
+}
 
 const wss = new WebSocketServer({ port: SERVER_PORT });
 const players = new Map<number, Player>();
@@ -57,7 +61,9 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     console.log(`player ${player.id} disconected`);
-    players.delete(player.id);
+    const disconectId = player.id;
+    players.delete(disconectId);
+    sendDisconect(players, disconectId);
   });
 
   ws.on("message", (data) => {
@@ -85,8 +91,3 @@ const loop = () => {
 };
 
 loop();
-
-// const interval = setInterval(() => {
-//   gameLoop(players);
-//   sendState(players);
-// }, TICK_LENGTH);
