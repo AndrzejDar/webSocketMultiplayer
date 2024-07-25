@@ -17,6 +17,7 @@ export const drawPlayer = (ctx, x, y) => {
 export class FPSCounter {
     timestamps;
     drawTimes;
+    intervalTimes;
     ctx;
     x;
     y;
@@ -25,18 +26,21 @@ export class FPSCounter {
         this.ctx = ctx;
         this.timestamps = [];
         this.drawTimes = [];
-        this.x = 600;
-        this.y = 50;
+        this.intervalTimes = [];
+        this.x = 400;
+        this.y = 40;
         this.drawStart = 0;
     }
-    setDrawStart() {
+    setDrawStartAndInterval(interval) {
         this.drawStart = performance.now();
+        this.intervalTimes.push(interval);
     }
     draw(timestamp) {
         this.timestamps.push(timestamp);
         const secAgo = timestamp - 1000;
         while (this.timestamps.length > 0 && this.timestamps[0] < secAgo) {
-            this.timestamps.shift();
+            this.timestamps.shift(); //removes frames generated more than 1 sec ago
+            this.intervalTimes.shift(); //removes acompaniying interval
         }
         this.ctx.font = "30px Arial";
         this.ctx.fillStyle = "white"; // Text color
@@ -50,7 +54,8 @@ export class FPSCounter {
             this.drawTimes.shift();
         this.drawTimes.push(drawTime);
         const avgDrawTime = this.drawTimes.reduce((a, b) => a + b) / this.drawTimes.length;
-        drawText(`${this.timestamps.length} FPS, ${avgDrawTime.toFixed(2)}ms`, this.x, this.y);
+        const avgDrawToDrawTime = this.intervalTimes.reduce((a, b) => a + b) / this.intervalTimes.length;
+        drawText(`${this.timestamps.length} FPS, drawT: ${avgDrawTime.toFixed(3)}ms, drawToDraw: ${avgDrawToDrawTime.toFixed(3)} / ${this.intervalTimes.length}`, this.x, this.y);
     }
 }
 export class OtherPlayer {

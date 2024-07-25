@@ -102,13 +102,14 @@ let players = new Map<number, OtherPlayer>();
 
   let lastFrameTimestamp = 0;
   const counter = new FPSCounter(context);
+  const frameDuration = 1000 / FPS_LIMIT;
 
   const drawGame = (timestamp: number) => {
     const deltaTime = timestamp - lastFrameTimestamp;
 
-    if (deltaTime > 1000 / FPS_LIMIT) {
-      counter.setDrawStart();
-      lastFrameTimestamp = timestamp;
+    if (deltaTime > frameDuration) {
+      counter.setDrawStartAndInterval(deltaTime);
+      lastFrameTimestamp = timestamp - (deltaTime % frameDuration);
       context.clearRect(0, 0, canvas.width, canvas.height);
 
       if (player) {
